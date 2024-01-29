@@ -9,14 +9,15 @@ if settings.DEBUG:
 else:
     router = SimpleRouter()
 
-router.register("users", UserViewSet)
+# router.register("users", UserViewSet)
 
 
 urls = [
     path("landing/", include("tendr_backend.landing.urls")),
     path("waitlist/", include("tendr_backend.waitlist.urls")),
+    path("users/", include("tendr_backend.users.api.urls")),
 ]
 
 app_name = "api"
 
-urlpatterns = router.urls + urls
+urlpatterns = urls
