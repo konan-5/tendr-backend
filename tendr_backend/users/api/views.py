@@ -13,7 +13,9 @@ from rest_framework.views import APIView
 from rest_framework.viewsets import GenericViewSet
 from rest_framework_simplejwt.tokens import BlacklistedToken, OutstandingToken, RefreshToken
 
+from tendr_backend.scrape.models import Tender
 from tendr_backend.users.api.serializers import MeSerializer, UserSerializer
+from tendr_backend.waitlist.models import WaitDocument
 
 User = get_user_model()
 env = environ.Env()
@@ -41,8 +43,17 @@ class RegisterUserView(APIView):
         try:
             email = request.data["email"]
             password = request.data["password"]
+            resource_id = request.data.get("resource_id")
+            tendr = None
+            if resource_id:
+                try:
+                    tendr = Tender.objects.get(resource_id=resource_id)
+                except:  # noqa
+                    tendr = None
             try:
-                User.objects.get(email=email)
+                user = User.objects.get(email=email)
+                if tendr:
+                    WaitDocument.objects.create(user_id=user, tendr_id=tendr)
                 return Response(
                     {"message": "already created"},
                     status=status.HTTP_400_BAD_REQUEST,
@@ -50,6 +61,9 @@ class RegisterUserView(APIView):
             except Exception as e:
                 print(e)
                 user = User.objects.create_user(email=email, password=password)
+                if tendr:
+                    WaitDocument.objects.create(user_id=user, tendr_id=tendr)
+
                 uidb64 = urlsafe_base64_encode(force_bytes(user.pk))
                 token = default_token_generator.make_token(user)
                 verification_link = f"{env('FRONT_END_URL')}/mail-verify?uidb64={uidb64}&token={token}"
