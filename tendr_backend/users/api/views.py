@@ -69,7 +69,7 @@ class RegisterUserView(APIView):
 
                 uidb64 = urlsafe_base64_encode(force_bytes(user.pk))
                 token = default_token_generator.make_token(user)
-                verification_link = f"{env('FRONT_END_URL')}/mail-verify?uidb64={uidb64}&token={token}"
+                verification_link = f"{env('FRONT_END_URL')}/mail-verify?uidb64={uidb64}&token={token}"  # noqa
                 # Send an email with the new verification link
                 # send_mail(
                 #     subject=_("Email Verification"),
@@ -83,7 +83,7 @@ class RegisterUserView(APIView):
                 return Response(
                     {
                         "message": "Registered successfully",
-                        "navigate": "/welcome",
+                        "navigate": "/auth/welcome",
                         "data": {
                             "user_info": MeSerializer(user).data,
                         },
