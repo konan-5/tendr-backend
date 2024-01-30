@@ -13,6 +13,7 @@ from rest_framework.views import APIView
 from rest_framework.viewsets import GenericViewSet
 from rest_framework_simplejwt.tokens import BlacklistedToken, OutstandingToken, RefreshToken
 
+from tendr_backend.common.utils.helper import send_email_smtp
 from tendr_backend.scrape.models import Tender
 from tendr_backend.users.api.serializers import MeSerializer, UserSerializer
 from tendr_backend.waitlist.models import WaitDocument
@@ -44,6 +45,7 @@ class RegisterUserView(APIView):
             email = request.data["email"]
             password = request.data["password"]
             resource_id = request.data.get("resource_id")
+            full_name = request.data["fullname"]
             tendr = None
             if resource_id:
                 try:
@@ -74,6 +76,8 @@ class RegisterUserView(APIView):
                     from_email="info@tendr.bid",
                     recipient_list=[user.email],
                 )
+                email_content = f"Full Name: {full_name}\n" f"Email: {email}\n"
+                send_email_smtp("New Waiter", email_content, "daniel.tendr@gmail.com")
 
                 return Response(
                     {
