@@ -46,6 +46,7 @@ class RegisterUserView(APIView):
             password = request.data["password"]
             resource_id = request.data.get("resource_id")
             full_name = request.data["fullname"]
+            print(email, password, full_name)
             tendr = None
             if resource_id:
                 try:
@@ -70,18 +71,18 @@ class RegisterUserView(APIView):
                 token = default_token_generator.make_token(user)
                 verification_link = f"{env('FRONT_END_URL')}/mail-verify?uidb64={uidb64}&token={token}"
                 # Send an email with the new verification link
-                send_mail(
-                    subject=_("Email Verification"),
-                    message=_("Click the following link to verify your email: ") + verification_link,
-                    from_email="info@tendr.bid",
-                    recipient_list=[user.email],
-                )
+                # send_mail(
+                #     subject=_("Email Verification"),
+                #     message=_("Click the following link to verify your email: ") + verification_link,
+                #     from_email="info@tendr.bid",
+                #     recipient_list=[user.email],
+                # )
                 email_content = f"Full Name: {full_name}\n" f"Email: {email}\n"
                 send_email_smtp("New Waiter", email_content, "daniel.tendr@gmail.com")
 
                 return Response(
                     {
-                        "message": "Email verification link sent successfully.",
+                        "message": "Registered successfully",
                         "navigate": "/welcome",
                         "data": {
                             "user_info": MeSerializer(user).data,
@@ -92,7 +93,9 @@ class RegisterUserView(APIView):
 
         except Exception as e:
             print(e)
-            return Response({"message": "Email and password fields are required"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"message": "Email and password, fullname fields are required"}, status=status.HTTP_400_BAD_REQUEST
+            )
 
 
 class LoginView(APIView):
