@@ -26,6 +26,7 @@ CORS_ORIGIN_WHITELIST = [
     "http://3.253.3.32:9001",
     "http://3.253.3.32:9003",
     "http://3.253.3.32:5173",
+    "http://3.253.3.32:3000",
     "https://tendr.bid",
     "https://www.tendr.bid",
     "https://app.tendr.bid",

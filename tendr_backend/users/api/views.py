@@ -46,8 +46,7 @@ class RegisterUserView(APIView):
             email = request.data["email"]
             password = request.data["password"]
             resource_id = request.data.get("resource_id")
-            full_name = request.data["fullname"]
-            print(email, password, full_name)
+            name = request.data["fullname"]
             tendr = None
             if resource_id:
                 try:
@@ -64,7 +63,7 @@ class RegisterUserView(APIView):
                 )
             except Exception as e:
                 print(e)
-                user = User.objects.create_user(email=email, password=password)
+                user = User.objects.create_user(email=email, name=name, password=password)
                 if tendr:
                     WaitDocument.objects.create(user_id=user, tendr_id=tendr)
 
@@ -110,23 +109,22 @@ class LoginView(APIView):
         email = request.data.get("email")
         password = request.data.get("password")
         user = User.objects.filter(email=email).first()
-        print(user)
         serializer = MeSerializer(user)
-        print(serializer)
+
         if user is None:
             return Response(
-                {"message": "User does not exist.", "navigate": "/login"},
+                {"message": "User does not exist.", "navigate": "auth/login"},
                 status=status.HTTP_401_UNAUTHORIZED,
-            )
-
-        if not user.mail_verified:
-            return Response(
-                {"message": "Mail not verified.", "navigate": "/mail-verify"}, status=status.HTTP_401_UNAUTHORIZED
             )
 
         if not user.check_password(password):
             return Response(
                 {"message": "Password is not correct.", "navigate": "/login"}, status=status.HTTP_401_UNAUTHORIZED
+            )
+
+        if not user.mail_verified:
+            return Response(
+                {"message": "Mail not verified.", "navigate": "auth/mail-verify"}, status=status.HTTP_401_UNAUTHORIZED
             )
 
         refresh = RefreshToken.for_user(user)
@@ -135,11 +133,9 @@ class LoginView(APIView):
             {
                 "message": "success login.",
                 "navigate": "/",
-                "data": {
-                    "access_token": str(refresh.access_token),
-                    "refresh_token": str(refresh),
-                    "user_info": serializer.data,
-                },
+                "access_token": str(refresh.access_token),
+                "refresh_token": str(refresh),
+                "user_info": serializer.data,
             }
         )
 
@@ -153,10 +149,8 @@ class FetchMe(APIView):
         return Response(
             {
                 # "message": "success login.",
-                "navigate": "/",
-                "data": {
-                    "user_info": serializer.data,
-                },
+                "navigate": "/apps",
+                "user_info": serializer.data,
             }
         )
 
@@ -300,6 +294,7 @@ class LogoutView(APIView):
     permission_classes = (permissions.IsAuthenticated,)
 
     def post(self, request):
+        print(request.data)
         refresh_token = request.data.get("refresh_token")
         if refresh_token:
             try:
