@@ -6,6 +6,7 @@ from tendr_backend.users.api.views import (
     DeleteUserView,
     FetchMe,
     ForgotPasswordView,
+    GoogleAuthView,
     LoginView,
     LogoutView,
     MailVerifyView,
@@ -35,4 +36,5 @@ urlpatterns = [
     path("get-refresh-token/", RefreshTokenView.as_view(), name="get-refresh-token"),
     path("send-mail-verify/", SendMailVerifyView.as_view(), name="send-mail-verify"),
     path("fetch-me/", FetchMe.as_view(), name="fetch-me"),
+    path("google/", GoogleAuthView.as_view(), name="googel-auth"),
 ]

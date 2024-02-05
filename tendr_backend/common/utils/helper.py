@@ -26,7 +26,7 @@ def send_email_smtp(subject, body, recipient_email):
     # Create server object with SSL option
     server = smtplib.SMTP(env.str("SMTP_SERVER"), env.int("SMTP_PORT"))
     server.login(sender_email, password)
-
+    print(msg)
     # Send email
     server.send_message(msg)
     server.quit()

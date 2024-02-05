@@ -1,4 +1,5 @@
 import environ
+import requests
 from django.contrib.auth import get_user_model
 from django.contrib.auth.tokens import default_token_generator
 from django.core.mail import send_mail
@@ -45,8 +46,7 @@ class RegisterUserView(APIView):
             email = request.data["email"]
             password = request.data["password"]
             resource_id = request.data.get("resource_id")
-            full_name = request.data["fullname"]
-            print(email, password, full_name)
+            name = request.data["fullname"]
             tendr = None
             if resource_id:
                 try:
@@ -63,13 +63,13 @@ class RegisterUserView(APIView):
                 )
             except Exception as e:
                 print(e)
-                user = User.objects.create_user(email=email, password=password)
+                user = User.objects.create_user(email=email, name=name, password=password)
                 if tendr:
                     WaitDocument.objects.create(user_id=user, tendr_id=tendr)
 
                 uidb64 = urlsafe_base64_encode(force_bytes(user.pk))
                 token = default_token_generator.make_token(user)
-                verification_link = f"{env('FRONT_END_URL')}/mail-verify?uidb64={uidb64}&token={token}"
+                verification_link = f"{env('FRONT_END_URL')}/auth/mail-verify?uidb64={uidb64}&token={token}"  # noqa
                 # Send an email with the new verification link
                 # send_mail(
                 #     subject=_("Email Verification"),
@@ -77,13 +77,16 @@ class RegisterUserView(APIView):
                 #     from_email="info@tendr.bid",
                 #     recipient_list=[user.email],
                 # )
-                email_content = f"Full Name: {full_name}\n" f"Email: {email}\n"
-                send_email_smtp("New Waiter", email_content, "daniel.tendr@gmail.com")
+
+                # email_content = f"Full Name: {full_name}\n" f"Email: {email}\n"
+                # send_email_smtp("New Waiter", email_content, "ikedahiroshi517@gmail.com")
+                print(verification_link)
+                send_email_smtp("Mail Verify", verification_link, email)
 
                 return Response(
                     {
                         "message": "Registered successfully",
-                        "navigate": "/welcome",
+                        "navigate": "/auth/welcome",
                         "data": {
                             "user_info": MeSerializer(user).data,
                         },
@@ -107,20 +110,21 @@ class LoginView(APIView):
         password = request.data.get("password")
         user = User.objects.filter(email=email).first()
         serializer = MeSerializer(user)
+
         if user is None:
             return Response(
-                {"message": "User does not exist.", "navigate": "/login"},
+                {"message": "User does not exist.", "navigate": "auth/login"},
                 status=status.HTTP_401_UNAUTHORIZED,
-            )
-
-        if not user.mail_verified:
-            return Response(
-                {"message": "Mail not verified.", "navigate": "/mail-verify"}, status=status.HTTP_401_UNAUTHORIZED
             )
 
         if not user.check_password(password):
             return Response(
                 {"message": "Password is not correct.", "navigate": "/login"}, status=status.HTTP_401_UNAUTHORIZED
+            )
+
+        if not user.mail_verified:
+            return Response(
+                {"message": "Mail not verified.", "navigate": "auth/mail-verify"}, status=status.HTTP_401_UNAUTHORIZED
             )
 
         refresh = RefreshToken.for_user(user)
@@ -129,11 +133,9 @@ class LoginView(APIView):
             {
                 "message": "success login.",
                 "navigate": "/",
-                "data": {
-                    "access_token": str(refresh.access_token),
-                    "refresh_token": str(refresh),
-                    "user_info": serializer.data,
-                },
+                "access_token": str(refresh.access_token),
+                "refresh_token": str(refresh),
+                "user_info": serializer.data,
             }
         )
 
@@ -147,10 +149,8 @@ class FetchMe(APIView):
         return Response(
             {
                 # "message": "success login.",
-                "navigate": "/",
-                "data": {
-                    "user_info": serializer.data,
-                },
+                "navigate": "/apps",
+                "user_info": serializer.data,
             }
         )
 
@@ -294,6 +294,7 @@ class LogoutView(APIView):
     permission_classes = (permissions.IsAuthenticated,)
 
     def post(self, request):
+        print(request.data)
         refresh_token = request.data.get("refresh_token")
         if refresh_token:
             try:
@@ -340,3 +341,22 @@ class RefreshTokenView(APIView):
         except Exception as e:
             print(e)
             return Response({"message": "Invalid refresh token"}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class GoogleAuthView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        token_url = "https://oauth2.googleapis.com/token"
+        data = {
+            "code": request.data["code"],
+            "client_id": env("GOOGLE_CLIENT_ID"),
+            "client_secret": env("GOOGLE_CLIENT_SECRET"),
+            "redirect_uri": env("GOOGLE_REDIRECT_URI"),
+            "grant_type": "authorization_code",
+        }
+        response = requests.post(token_url, data=data)
+
+        print(response)
+
+        return Response("data")
