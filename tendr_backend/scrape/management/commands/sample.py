@@ -14,7 +14,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         print("Start scrape task")
-        for i in range(44):
+        for i in range(48):
             main(i)
         # time.sleep(2)
         # resource_ids, total_page_number = get_resource_id()

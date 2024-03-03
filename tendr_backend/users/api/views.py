@@ -42,66 +42,104 @@ class RegisterUserView(APIView):
     permission_classes = [permissions.AllowAny]
 
     def post(self, request):
-        try:
-            email = request.data["email"]
-            password = request.data["password"]
-            resource_id = request.data.get("resource_id")
-            name = request.data["fullname"]
-            tendr = None
-            if resource_id:
-                try:
-                    tendr = Tender.objects.get(resource_id=resource_id)
-                except:  # noqa
-                    tendr = None
-            try:
-                user = User.objects.get(email=email)
-                if tendr:
-                    WaitDocument.objects.create(user_id=user, tendr_id=tendr)
-                return Response(
-                    {"message": "already created"},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-            except Exception as e:
-                print(e)
-                user = User.objects.create_user(email=email, name=name, password=password)
-                if tendr:
-                    WaitDocument.objects.create(user_id=user, tendr_id=tendr)
+        print(request.data)
+        email = request.data.get("email")
+        password = request.data.get("password")
+        name = request.data.get("name")  # Make sure this matches the frontend field name
 
-                uidb64 = urlsafe_base64_encode(force_bytes(user.pk))
-                token = default_token_generator.make_token(user)
-                verification_link = f"{env('FRONT_END_URL')}/auth/mail-verify?uidb64={uidb64}&token={token}"  # noqa
-                # Send an email with the new verification link
-                # send_mail(
-                #     subject=_("Email Verification"),
-                #     message=_("Click the following link to verify your email: ") + verification_link,
-                #     from_email="info@tendr.bid",
-                #     recipient_list=[user.email],
-                # )
+        # Check if a user with the provided email already exists
+        if User.objects.filter(email=email).exists():
+            return Response({"message": "Already exists."}, status=status.HTTP_400_BAD_REQUEST)
 
-                # email_content = f"Full Name: {full_name}\n" f"Email: {email}\n"
-                # send_email_smtp("New Waiter", email_content, "ikedahiroshi517@gmail.com")
-                print(verification_link)
-                send_email_smtp("Mail Verify", verification_link, email)
+        # Create a new user
+        user = User.objects.create_user(email=email, name=name, password=password)
+        uidb64 = urlsafe_base64_encode(force_bytes(user.pk))
+        token = default_token_generator.make_token(user)
+        # Generate email verification token
+        # Send verification email
+        # send_mail(
+        #     subject="Verify your email address",
+        #     message=f"Please click the following link to verify your email address: {verification_link}",
+        #     from_email=env('EMAIL_HOST_USER'),
+        #     recipient_list=[email],
+        # )
+        verification_link = f"'hello'/auth/mail-verify?uidb64={uidb64}&token={token}"
+        print(verification_link)
 
-                return Response(
-                    {
-                        "message": "Registered successfully",
-                        "navigate": "/auth/welcome",
-                        "data": {
-                            "user_info": MeSerializer(user).data,
-                        },
-                    },
-                    status=status.HTTP_200_OK,
-                )
+        return Response(
+            {
+                "message": "Registered successfully. Please check your email to verify your account.",
+                "navigate": "/confirmation-required",
+                "verification_link": verification_link,
+                # "data": {
+                #     "user_info": MeSerializer(user).data,
+                # },
+            },
+            status=status.HTTP_201_CREATED,
+        )
 
-        except Exception as e:
-            print(e)
-            return Response(
-                {"message": "Email and password, fullname fields are required"}, status=status.HTTP_400_BAD_REQUEST
-            )
+        # try:
+        #     email = request.data["email"]
+        #     password = request.data["password"]
+        #     resource_id = request.data.get("resource_id")
+        #     name = request.data["fullName"]
+        #     tendr = None
+        #     if resource_id:
+        #         try:
+        #             tendr = Tender.objects.get(resource_id=resource_id)
+        #         except:  # noqa
+        #             tendr = None
+        #     try:
+        #         user = User.objects.get(email=email)
+        #         if tendr:
+        #             WaitDocument.objects.create(user_id=user, tendr_id=tendr)
+        #         return Response(
+        #             {"message": "Already created"},
+        #             status=status.HTTP_400_BAD_REQUEST,
+        #         )
+        #     except Exception as e:
+        #         print(e)
+        #         user = User.objects.create_user(email=email, name=name, password=password)
+        #         if tendr:
+        #             WaitDocument.objects.create(user_id=user, tendr_id=tendr)
+
+        #         uidb64 = urlsafe_base64_encode(force_bytes(user.pk))
+        #         token = default_token_generator.make_token(user)
+        #         verification_link = f"efefew/auth/mail-verify?uidb64={uidb64}&token={token}"  # noqa
+        #         # verification_link = f"{env('FRONT_END_URL')}/auth/mail-verify?uidb64={uidb64}&token={token}"  # noqa
+        #         # Send an email with the new verification link
+        #         # send_mail(
+        #         #     subject=_("Email Verification"),
+        #         #     message=_("Click the following link to verify your email: ") + verification_link,
+        #         #     from_email="info@tendr.bid",
+        #         #     recipient_list=[user.email],
+        #         # )
+
+        #         # email_content = f"Full Name: {full_name}\n" f"Email: {email}\n"
+        #         # send_email_smtp("New Waiter", email_content, "ikedahiroshi517@gmail.com")
+        #         print(verification_link)
+        #         # send_email_smtp("Mail Verify", verification_link, email)
+
+        #         return Response(
+        #             {
+        #                 "message": "Registered successfully",
+        #                 "navigate": "/auth/welcome",
+        #                 "verification":verification_link
+        #                 # "data": {
+        #                 #     "user_info": MeSerializer(user).data,
+        #                 # },
+        #             },
+        #             status=status.HTTP_200_OK,
+        #         )
+
+        # except Exception as e:
+        #     print(e)
+        #     return Response(
+        #         {"message": "Email and password, fullname fields are required"}, status=status.HTTP_400_BAD_REQUEST
+        #     )
 
 
-class LoginView(APIView):
+class SignInView(APIView):
     permission_classes = [permissions.AllowAny]
     authentication_classes = []
 
@@ -110,48 +148,69 @@ class LoginView(APIView):
         password = request.data.get("password")
         user = User.objects.filter(email=email).first()
         serializer = MeSerializer(user)
-
+        print(serializer.data)
         if user is None:
             return Response(
-                {"message": "User does not exist.", "navigate": "auth/login"},
+                {"type": "email", "message": "User does not exist."},
                 status=status.HTTP_401_UNAUTHORIZED,
             )
-
         if not user.check_password(password):
             return Response(
-                {"message": "Password is not correct.", "navigate": "/login"}, status=status.HTTP_401_UNAUTHORIZED
+                {"type": "password", "message": "Password is not correct."}, status=status.HTTP_401_UNAUTHORIZED
             )
 
         if not user.mail_verified:
-            return Response(
-                {"message": "Mail not verified.", "navigate": "auth/mail-verify"}, status=status.HTTP_401_UNAUTHORIZED
-            )
+            return Response({"navigate": "/confirmation-required"}, status=status.HTTP_401_UNAUTHORIZED)
 
         refresh = RefreshToken.for_user(user)
 
         return Response(
             {
                 "message": "success login.",
-                "navigate": "/",
+                # "navigate": "/",
                 "access_token": str(refresh.access_token),
                 "refresh_token": str(refresh),
-                "user_info": serializer.data,
+                # "user": serializer.data
+                "user": {
+                    "role": "admin",
+                    "data": {
+                        "name": serializer.data["name"],
+                        "photoURL": "assets/images/avatars/brian-hughes.jpg",
+                        "email": serializer.data["email"],
+                        "settings": {"layout": {}, "theme": {}},
+                        "shortcuts": ["apps.calendar", "apps.mailbox", "apps.contacts"],
+                    },
+                },
             }
         )
 
 
-class FetchMe(APIView):
+class AccessToken(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request):
         user = request.user
         serializer = MeSerializer(user)
+        print(serializer.data)
+        refresh = RefreshToken.for_user(user)
+
         return Response(
             {
                 # "message": "success login.",
-                "navigate": "/apps",
-                "user_info": serializer.data,
-            }
+                # "user": serializer.data,
+                "user": {
+                    "role": "admin",
+                    "data": {
+                        "name": serializer.data["name"],
+                        "photoURL": "assets/images/avatars/brian-hughes.jpg",
+                        "email": serializer.data["email"],
+                        "settings": {"layout": {}, "theme": {}},
+                        "shortcuts": ["apps.calendar", "apps.mailbox", "apps.contacts"],
+                    },
+                },
+                "access_token": str(refresh.access_token),
+            },
+            status=status.HTTP_200_OK,
         )
 
 
