@@ -92,6 +92,7 @@ LOCAL_APPS = [
     "tendr_backend.common",
     "tendr_backend.landing",
     "tendr_backend.scrape",
+    "tendr_backend.downloaded_tenders",
     # Your stuff: custom apps go here
 ]
 # https://docs.djangoproject.com/en/dev/ref/settings/#installed-apps
