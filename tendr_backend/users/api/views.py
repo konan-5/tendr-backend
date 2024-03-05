@@ -14,10 +14,8 @@ from rest_framework.views import APIView
 from rest_framework.viewsets import GenericViewSet
 from rest_framework_simplejwt.tokens import BlacklistedToken, OutstandingToken, RefreshToken
 
-from tendr_backend.common.utils.helper import send_email_smtp
-from tendr_backend.scrape.models import Tender
+from tendr_backend.common.utils.helper import send_email_smtp  # noqa
 from tendr_backend.users.api.serializers import MeSerializer, UserSerializer
-from tendr_backend.waitlist.models import WaitDocument
 
 User = get_user_model()
 env = environ.Env()
@@ -49,7 +47,7 @@ class RegisterUserView(APIView):
 
         # Check if a user with the provided email already exists
         if User.objects.filter(email=email).exists():
-            return Response({"message": "Already exists."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"type": "email", "message": "Already exists."}, status=status.HTTP_400_BAD_REQUEST)
 
         # Create a new user
         user = User.objects.create_user(email=email, name=name, password=password)
