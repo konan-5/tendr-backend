@@ -61,7 +61,7 @@ class RegisterUserView(APIView):
         #     from_email=env('EMAIL_HOST_USER'),
         #     recipient_list=[email],
         # )
-        verification_link = f"'hello'/auth/mail-verify?uidb64={uidb64}&token={token}"
+        verification_link = f"{env('FRONT_END_URL')}/mail-verify?uidb64={uidb64}&token={token}"
         print(verification_link)
 
         return Response(
@@ -75,6 +75,17 @@ class RegisterUserView(APIView):
             },
             status=status.HTTP_201_CREATED,
         )
+
+        # "user": {
+        #     "role": "admin",
+        #     "data": {
+        #         "name": serializer.data["name"],
+        #         "photoURL": "assets/images/avatars/brian-hughes.jpg",
+        #         "email": serializer.data["email"],
+        #         "settings": {"layout": {}, "theme": {}},
+        #         "shortcuts": ["apps.calendar", "apps.mailbox", "apps.contacts"],
+        #     },
+        # }
 
         # try:
         #     email = request.data["email"]
@@ -171,13 +182,7 @@ class SignInView(APIView):
                 # "user": serializer.data
                 "user": {
                     "role": "admin",
-                    "data": {
-                        "name": serializer.data["name"],
-                        "photoURL": "assets/images/avatars/brian-hughes.jpg",
-                        "email": serializer.data["email"],
-                        "settings": {"layout": {}, "theme": {}},
-                        "shortcuts": ["apps.calendar", "apps.mailbox", "apps.contacts"],
-                    },
+                    "data": serializer.data,
                 },
             }
         )
@@ -210,6 +215,36 @@ class AccessToken(APIView):
             },
             status=status.HTTP_200_OK,
         )
+
+
+class MailVerifyView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        uidb64 = request.data.get("uidb64")
+        token = request.data.get("token")
+        try:
+            uid = force_str(urlsafe_base64_decode(uidb64))
+            user = User.objects.get(pk=uid)
+            if default_token_generator.check_token(user, token):
+                user.mail_verified = True
+                user.save()
+                return Response(
+                    {"message": "Email verified successfully.", "navigate": "/sign-in"}, status=status.HTTP_200_OK
+                )
+            return Response(
+                {"message": "Invalid verification link.", "navigate": "/mail-verify"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        except Exception as e:
+            print(e)
+            return Response(
+                {
+                    "message": "Invalid verification link.",
+                    "navigate": "/mail-verify",
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
 
 class SendMailVerifyView(APIView):
@@ -249,34 +284,30 @@ class SendMailVerifyView(APIView):
         )
 
 
-class MailVerifyView(APIView):
+class ForgotPasswordView(APIView):
     permission_classes = [permissions.AllowAny]
 
     def post(self, request):
-        uidb64 = request.data.get("uidb64")
-        token = request.data.get("token")
-        try:
-            uid = force_str(urlsafe_base64_decode(uidb64))
-            user = User.objects.get(pk=uid)
-            if default_token_generator.check_token(user, token):
-                user.mail_verified = True
-                user.save()
-                return Response(
-                    {"message": "Email verified successfully.", "navigate": "/login"}, status=status.HTTP_200_OK
-                )
-            return Response(
-                {"message": "Invalid verification link.", "navigate": "/mail-verify"},
-                status=status.HTTP_400_BAD_REQUEST,
+        email = request.data.get("email")
+        user = User.objects.filter(email=email).first()
+
+        if user:
+            # Generate a reset password token and send a link to the user
+            token = default_token_generator.make_token(user)
+            uidb64 = urlsafe_base64_encode(force_bytes(user.pk))
+            reset_link = f"{env('FRONT_END_URL')}/reset-password?uidb64={uidb64}&token={token}"
+
+            # Send an email with the reset password link
+            send_mail(
+                subject=_("Password Reset"),
+                message=_("Click the following link to reset your password: ") + reset_link,
+                from_email="sg.pythondev@gmail.com",
+                recipient_list=[email],
             )
-        except Exception as e:
-            print(e)
-            return Response(
-                {
-                    "message": "Invalid verification link.",
-                    "navigate": "/mail-verify",
-                },
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+
+            return Response({"message": "Password reset link sent to your email."}, status=status.HTTP_200_OK)
+
+        return Response({"message": "User with that email does not exist."}, status=status.HTTP_400_BAD_REQUEST)
 
 
 class ResetPasswordView(APIView):
@@ -319,32 +350,6 @@ class ResetPasswordView(APIView):
                 },
                 status=status.HTTP_400_BAD_REQUEST,
             )
-
-
-class ForgotPasswordView(APIView):
-    permission_classes = [permissions.AllowAny]
-
-    def post(self, request):
-        email = request.data.get("email")
-        user = User.objects.filter(email=email).first()
-
-        if user:
-            # Generate a reset password token and send a link to the user
-            token = default_token_generator.make_token(user)
-            uidb64 = urlsafe_base64_encode(force_bytes(user.pk))
-            reset_link = f"{env('FRONT_END_URL')}/reset-password?uidb64={uidb64}&token={token}"
-
-            # Send an email with the reset password link
-            send_mail(
-                subject=_("Password Reset"),
-                message=_("Click the following link to reset your password: ") + reset_link,
-                from_email="sg.pythondev@gmail.com",
-                recipient_list=[email],
-            )
-
-            return Response({"message": "Password reset link sent to your email."}, status=status.HTTP_200_OK)
-
-        return Response({"message": "User with that email does not exist."}, status=status.HTTP_400_BAD_REQUEST)
 
 
 class LogoutView(APIView):

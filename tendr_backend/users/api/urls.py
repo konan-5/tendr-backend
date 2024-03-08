@@ -26,7 +26,7 @@ router.register("", UserViewSet)
 
 urlpatterns = [
     path("users/", include(router.urls)),
-    path("sign-up/", RegisterUserView.as_view(), name="register"),
+    path("sign-up/", RegisterUserView.as_view(), name="sign-up"),
     path("sign-in/", SignInView.as_view(), name="sign-in"),
     path("access-token/", AccessToken.as_view(), name="access-token"),
     path("mail-verify/", MailVerifyView.as_view(), name="mail-verify"),
