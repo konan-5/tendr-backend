@@ -16,9 +16,9 @@ class DownloadedTenders(APIView):
 
     def get(self, request):
 
-        tender = Tender.objects.first()
-        if tender:
-            serializer = TenderSerializer(tender)
+        tenders = Tender.objects.all()[:3]
+        if tenders.exists():
+            serializer = TenderSerializer(tenders, many=True)
             return Response(serializer.data, status=status.HTTP_200_OK)
         else:
             return Response({"error": "Resource not found"}, status=status.HTTP_404_NOT_FOUND)

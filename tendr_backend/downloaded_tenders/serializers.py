@@ -6,7 +6,7 @@ from tendr_backend.scrape.models import CftFile, Tender  # Adjust based on your 
 class CftFileSerializer(serializers.ModelSerializer):
     class Meta:
         model = CftFile
-        fields = "__all__"  # or list specific fields you want to include
+        fields = ("id", "file", "title")  # or list specific fields you want to include
 
 
 class TenderSerializer(serializers.ModelSerializer):
@@ -14,4 +14,4 @@ class TenderSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Tender
-        fields = "__all__"  # or list specific fields, including 'cft_files'
+        fields = ("title", "resource_id", "cft_files", "cpv_code")  # or list specific fields, including 'cft_files'
