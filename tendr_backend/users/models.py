@@ -14,17 +14,25 @@ class User(AbstractUser):
     check forms.SignupForm and forms.SocialSignupForms accordingly.
     """
 
+    USER_ROLE = (
+        ("free", "Free"),
+        ("premium", "Premium"),
+    )
+
     # First and last name do not cover name patterns around the globe
     name = CharField(_("Name of User"), blank=True, max_length=255, null=True)
+    email = EmailField(_("email address"), unique=True)
     first_name = models.CharField(max_length=255, blank=True, null=True)
     last_name = models.CharField(max_length=255, blank=True, null=True)
-    email = EmailField(_("email address"), unique=True)
     username = models.CharField(max_length=255, blank=True, null=True)
+    role = models.CharField(max_length=255, choices=USER_ROLE, default="free")
     gender = models.CharField(max_length=255, blank=True, null=True)
     mail_verified = models.BooleanField(default=False)
-    phone = models.CharField(max_length=255, blank=True, null=True)
+    phone_number = models.CharField(max_length=255, blank=True, null=True)
     address = models.CharField(max_length=1024, blank=True, null=True)
-    avatar = models.ImageField(blank=True, null=True, upload_to="users/avatar")
+    avatar_image = models.ImageField(blank=True, null=True, upload_to="users/avatar")
+    company = models.CharField(blank=True, null=True, max_length=2048)
+    birth_of_date = models.DateField(blank=True, null=True)
 
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = []
