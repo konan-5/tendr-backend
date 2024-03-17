@@ -26,13 +26,12 @@ class User(AbstractUser):
     last_name = models.CharField(max_length=255, blank=True, null=True)
     username = models.CharField(max_length=255, blank=True, null=True)
     role = models.CharField(max_length=255, choices=USER_ROLE, default="free")
-    gender = models.CharField(max_length=255, blank=True, null=True)
     mail_verified = models.BooleanField(default=False)
     phone_number = models.CharField(max_length=255, blank=True, null=True)
     address = models.CharField(max_length=1024, blank=True, null=True)
     avatar_image = models.ImageField(blank=True, null=True, upload_to="users/avatar")
     company = models.CharField(blank=True, null=True, max_length=2048)
-    birth_of_date = models.DateField(blank=True, null=True)
+    birthday = models.DateField(blank=True, null=True)
 
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = []

@@ -153,39 +153,47 @@ class SignInView(APIView):
     authentication_classes = []
 
     def post(self, request):
-        email = request.data.get("email")
-        password = request.data.get("password")
-        user = User.objects.filter(email=email).first()
-        serializer = MeSerializer(user)
-        print(serializer.data)
-        if user is None:
+        try:
+            email = request.data.get("email")
+            password = request.data.get("password")
+            user = User.objects.filter(email=email).first()
+            serializer = MeSerializer(user)
+            print(serializer.data)
+            if user is None:
+                return Response(
+                    {"type": "email", "message": "User does not exist."},
+                    status=status.HTTP_401_UNAUTHORIZED,
+                )
+            if not user.check_password(password):
+                return Response(
+                    {"type": "password", "message": "Password is not correct."}, status=status.HTTP_401_UNAUTHORIZED
+                )
+
+            if not user.mail_verified:
+                return Response({"navigate": "/confirmation-required"}, status=status.HTTP_401_UNAUTHORIZED)
+
+            refresh = RefreshToken.for_user(user)
+
             return Response(
-                {"type": "email", "message": "User does not exist."},
-                status=status.HTTP_401_UNAUTHORIZED,
+                {
+                    "message": "success login.",
+                    "access_token": str(refresh.access_token),
+                    "refresh_token": str(refresh),
+                    "user": {
+                        "role": "admin",
+                        "data": serializer.data,
+                    },
+                }
             )
-        if not user.check_password(password):
+        except Exception as e:
+            print(e)
             return Response(
-                {"type": "password", "message": "Password is not correct."}, status=status.HTTP_401_UNAUTHORIZED
-            )
-
-        if not user.mail_verified:
-            return Response({"navigate": "/confirmation-required"}, status=status.HTTP_401_UNAUTHORIZED)
-
-        refresh = RefreshToken.for_user(user)
-
-        return Response(
-            {
-                "message": "success login.",
-                # "navigate": "/",
-                "access_token": str(refresh.access_token),
-                "refresh_token": str(refresh),
-                # "user": serializer.data
-                "user": {
-                    "role": "admin",
-                    "data": serializer.data,
+                {
+                    "message": "Internal server error",
+                    "navigate": "/500",
                 },
-            }
-        )
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
 
 
 class AccessToken(APIView):
@@ -203,13 +211,7 @@ class AccessToken(APIView):
                 # "user": serializer.data,
                 "user": {
                     "role": "admin",
-                    "data": {
-                        "name": serializer.data["name"],
-                        "photoURL": "assets/images/avatars/brian-hughes.jpg",
-                        "email": serializer.data["email"],
-                        "settings": {"layout": {}, "theme": {}},
-                        "shortcuts": ["apps.calendar", "apps.mailbox", "apps.contacts"],
-                    },
+                    "data": serializer.data,
                 },
                 "access_token": str(refresh.access_token),
             },
